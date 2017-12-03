@@ -10,25 +10,72 @@ lapply(packs,require,character.only=TRUE)
 
 coin = c("Bitcoin","Litecoin","Ethereum","DASH","Ripple")
 pair = c("USDT_BTC","USDT_LTC","USDT_ETH","USDT_DASH","USDT_XRP")
-from = as.POSIXct("2015-01-01 00:00:00 UTC")
+from = as.POSIXct("2015-08-31 00:00:00 UTC")
 to = as.POSIXct("2017-11-30 00:00:00 UTC")
 
+poloniex.public <- PoloniexPublicAPI()
+period = "D"
+
+
+
+
+res_list <- list()
+for (k in seq_along(pair)) {
+	dat = data.frame(ReturnChartData(poloniex.public,pair = pair[k],from = from,to = to,period = period))
+	res_list[[k]] = dat %>%	mutate(Date = rownames(data.frame(dat))) %>%
+			rename(price = weightedaverage) %>% select(Date,price) %>% 
+			filter(price != 0) %>%
+			mutate(Date = as.Date(Date),per_ind = price / first(price) * 100, ym = strftime(Date,"%Y-%m"), ym = strftime(Date,"%Y-%m"))
+	}
+	
 
 for (k in seq_along(pair)) {
 
-	poloniex.public <- PoloniexPublicAPI()
-	period = "D"
 
 	dat = data.frame(ReturnChartData(poloniex.public,pair = pair[k],from = from,to = to,period = period))
 	dat = dat %>%	mutate(Date = rownames(data.frame(dat))) %>%
 			rename(price = weightedaverage) %>% select(Date,price) %>% 
 			filter(price != 0) %>%
-			mutate(Date = as.Date(Date),per_ind = price / first(price), ym = strftime(Date,"%Y-%m"), ym = strftime(Date,"%Y-%m"))
+			mutate(Date = as.Date(Date),per_ind = price / first(price) * 100, ym = strftime(Date,"%Y-%m"), ym = strftime(Date,"%Y-%m"))
 			
-
-			
+		
 	###Functions###
 
+	'%notin%' <- function(x,y) !(x %in% y)
+	
+	log_compare <- function(dat) {
+	
+		red_dat = Reduce(function(...) merge(...,all=TRUE),
+					lapply(seq_along(dat), function(x) {
+							res = dat[[x]] %>% select(Date,per_ind) 
+							colnames(res)[2] = paste0(colnames(res)[2] ,"_",coin[x])
+						return(res)
+						})
+					) %>% mutate(ym = strftime(Date,"%Y-%m"))
+		
+		y = red_dat %>% mutate(ind2 = 1:n()) %>% group_by(ym) %>% slice(which.max(Date)) %>% data.frame()
+
+		n = 1:nrow(y)
+		max_p = max(y[,2:(1+length(pair))])
+		min_p = min(y[,2:(1+length(pair))])
+		ylims = pretty(c(min_p,max_p))
+		y_colnames = colnames(y)[2:(1+length(pair))]
+		max_col = names(unlist(apply(y[,2:(1+length(pair))]==max_p,2,function(x) which(x==TRUE))))
+		
+		y_new = with(y,y[,c(max_col,y_colnames[y_colnames %notin% max_col])])
+		coin_names = sapply(strsplit(colnames(y_new),"_"),function(z) z[3])
+		
+		cols = c("dodgerblue","darkred","black","orange","darkgreen","darkgrey","yellow")
+			
+		plot(y_new[,1],log="y",type="l",col=cols[1],las=2,lwd=2.5,xlab="",xaxt="n",ylab="",
+		main = "Performance Index (log-Scale), start=100",adj=0,font.main=1)
+		axis(1,1:nrow(y),y$ym,las=2,cex.axis=0.85)
+		for (i in 2:ncol(y_new)) {
+			lines(y_new[,i],col=cols[i],lwd=2.5)
+		}
+		legend("topleft",lty=1,col=cols[1:ncol(y_new)],paste0("USD / ",coin_names),bty="n",lwd=2.5)
+	}
+	
 	log_price <- function(dat) {
 		
 		y = dat %>% mutate(ind2 = 1:n()) %>% group_by(ym) %>% slice(which.max(Date)) %>% data.frame()
@@ -163,6 +210,8 @@ for (k in seq_along(pair)) {
 	perc_prof(dat,c(3,6,12,24))
 
 	drawback_ath(dat)
+	
+	log_compare(res_list)
 
 	dev.off()
 	
