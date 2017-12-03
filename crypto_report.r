@@ -13,10 +13,9 @@ pair = c("USDT_BTC","USDT_LTC","USDT_ETH","USDT_DASH","USDT_XRP")
 from = as.POSIXct("2015-08-31 00:00:00 UTC")
 to = as.POSIXct("2017-11-30 00:00:00 UTC")
 
+
 poloniex.public <- PoloniexPublicAPI()
 period = "D"
-
-
 
 
 res_list <- list()
@@ -29,16 +28,6 @@ for (k in seq_along(pair)) {
 	}
 	
 
-for (k in seq_along(pair)) {
-
-
-	dat = data.frame(ReturnChartData(poloniex.public,pair = pair[k],from = from,to = to,period = period))
-	dat = dat %>%	mutate(Date = rownames(data.frame(dat))) %>%
-			rename(price = weightedaverage) %>% select(Date,price) %>% 
-			filter(price != 0) %>%
-			mutate(Date = as.Date(Date),per_ind = price / first(price) * 100, ym = strftime(Date,"%Y-%m"), ym = strftime(Date,"%Y-%m"))
-			
-		
 	###Functions###
 
 	'%notin%' <- function(x,y) !(x %in% y)
@@ -194,6 +183,7 @@ for (k in seq_along(pair)) {
 		
 	####REPORT###
 
+for (k in seq_along(pair)) {
 
 	pdf(paste0("C:/Projects/R_Projects/CryptoReport/",strftime(to,"%Y_%m"),"_",coin[k],"_Report.pdf"),10,10)
 
@@ -201,15 +191,15 @@ for (k in seq_along(pair)) {
 	text(0.5,0.8,paste0(coin[k], " Performance Report"),cex=2)
 
 
-	log_price(dat)
+	log_price(res_list[[k]])
 
-	month_perform(dat)
+	month_perform(res_list[[k]])
 		
-	roll_plot(dat,c(3,12,24))
+	roll_plot(res_list[[k]],c(3,12,24))
 
-	perc_prof(dat,c(3,6,12,24))
+	perc_prof(res_list[[k]],c(3,6,12,24))
 
-	drawback_ath(dat)
+	drawback_ath(res_list[[k]])
 	
 	log_compare(res_list)
 
