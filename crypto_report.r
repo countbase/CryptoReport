@@ -12,7 +12,7 @@ lapply(packs,require,character.only=TRUE)
 coin = "Bitcoin"
 
 until = as.Date("2017-11-30")
-startd = as.Date("2014-11-01")
+startd = as.Date("2014-06-01")
 
 btc = Quandl("BCHARTS/BITSTAMPUSD") %>% filter(Date >= startd &
 		`Weighted Price` != 0 & Date <= until) %>%
@@ -82,7 +82,7 @@ drawback_ath <- function(dat) {
 	ylabs = pretty(c(-0.7,0))
 	xlims = seq(1,n,2)
 	
-	plot(res$drawb,type="l",ylim=c(-0.5,0),col="white",
+	plot(res$drawb,type="l",ylim=c(min(ylabs),0),col="white",
 		main = "Percent decline from All-Time-High", font.main=1,adj=0,
 		ylab="",yaxt="n",
 		xlab="", xaxt="n",bty="n")
